@@ -23,6 +23,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 /**
  * Created by ivan on 6/16/17.
@@ -35,6 +36,8 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * Output: 单词|网页编号，单词在网页编号出现的次数
  */
 public class WordCount {
+    final private static String SEPARATOR = "@";
+
     public static class WordCountMapper extends
             Mapper<Object, Text, Text, IntWritable>{
         private static final Pattern ChinesePattern = Pattern.compile("[\u4e00-\u9fa5]");
@@ -44,7 +47,7 @@ public class WordCount {
 
         private static Set<String> stopwords = new HashSet<String>();
         final private static String stopwordPath = "./stopwords";
-        final private static String SEPARATOR = "|";
+
 
 
         public void map(Object key, Text value, Context context)
@@ -78,7 +81,7 @@ public class WordCount {
             for (SegToken token : tokens){
                 if(!stopwords.contains(token.word)) {
                     word.set(token.word + SEPARATOR + id);
-                    context.write(this.word, this.count);
+                    context.write(word, count);
                 }
             }
 
@@ -113,8 +116,9 @@ public class WordCount {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(IntWritable.class);
 
-        FileInputFormat.addInputPath(job, new Path(args[0]));
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
+        FileInputFormat.addInputPath(job, new Path(args[0]));
         FileSystem fs = FileSystem.get(conf);
         Path wordCountOutput = new Path(args[1]);
         if (fs.exists(wordCountOutput))
