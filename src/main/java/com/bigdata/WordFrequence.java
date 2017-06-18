@@ -15,9 +15,11 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 /**
  * Created by ivan on 6/17/17.
@@ -38,8 +40,8 @@ public class WordFrequence {
         private Text pageId = new Text();
         private Text wordWordCount = new Text();
 
-        public void map(Text key, IntWritable value, Context context)
-        throws IOException, InterruptedException{
+        protected void map(Text key, IntWritable value, Context context)
+            throws IOException, InterruptedException{
             String[] temp = key.toString().split(SEPARATOR);
             pageId.set(temp[1]);
             wordWordCount.set(temp[0] + SEPARATOR + value.toString());
@@ -53,7 +55,7 @@ public class WordFrequence {
         private Text wordPageId = new Text();
         private DoubleWritable percent = new DoubleWritable();
 
-        public void reduce(Text key, Iterable<Text> values, Context context)
+        protected void reduce(Text key, Iterable<Text> values, Context context)
             throws IOException, InterruptedException{
             Map<String, Integer> counter = new HashMap<String, Integer>();
             int count = 0;
@@ -63,7 +65,6 @@ public class WordFrequence {
                 count += Integer.parseInt(temp[1]);
             }
 
-            System.out.println(key.toString() + " " + count);
             for (String word : counter.keySet()){
                 wordPageId.set(word + SEPARATOR + key.toString());
                 percent.set(((double)counter.get(word))/count);
@@ -80,13 +81,15 @@ public class WordFrequence {
         job.setMapperClass(WordFrequenceMapper.class);
         job.setReducerClass(WordFrequenceReducer.class);
 
+        //job.setInputFormatClass(KeyValueTextInputFormat.class);
+
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(DoubleWritable.class);
 
         job.setInputFormatClass(SequenceFileInputFormat.class);
-//        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
