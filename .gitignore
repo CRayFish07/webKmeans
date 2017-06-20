@@ -4,3 +4,6 @@ webKmeans.iml
 *.ipr
 *.iws
 .idea/
+target/
+input/
+**.log
