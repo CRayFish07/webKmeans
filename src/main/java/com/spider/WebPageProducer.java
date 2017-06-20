@@ -4,13 +4,9 @@ package com.spider;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -30,57 +26,59 @@ public class WebPageProducer implements Runnable {
             "https://www.myzaker.com/channel/10376",//游戏频道
             "https://www.myzaker.com/channel/10530"//电影频道
     };
-    private static ArrayBlockingQueue<String> URLQueue;
     private int clusterSize;
     private volatile int URLUID = 1;
-    private static ConcurrentHashMap<String, Integer> URLMap;
 
-    public WebPageProducer(ArrayBlockingQueue<String> URLQueue,
-                           ConcurrentHashMap<String, Integer> URLMap,
-                           int clusterSize) {
-        URLQueue = URLQueue;
-        URLMap = URLMap;
+
+    //    public WebPageProducer(ArrayBlockingQueue<String> urlQueue,
+//                           ConcurrentHashMap<String, Integer> urlMap,
+//                           int clusterSize) {
+//        URLQueue = urlQueue;
+//        URLMap = urlMap;
+//        this.clusterSize = clusterSize;
+//    }
+    public WebPageProducer(
+            int clusterSize) {
         this.clusterSize = clusterSize;
     }
 
-    private void extractURL(String URL) throws IOException {
+    private void extractURL(String URL, int i) throws IOException, InterruptedException {
         int count = 0;
         String nextPage = URL;
         while (true) {
             Document document = Jsoup.connect(nextPage).get();
             for (Element element : document.getElementsByAttributeValue("class", "figure flex-block")) {
                 String articleURL = element.select("div > h2 > a").first().absUrl("href");
+                Container.getURLQueue().put(articleURL);
                 synchronized (WebPageProducer.class) {
-                    if (!URLMap.containsKey(articleURL)) {
-                        URLMap.put(articleURL, URLUID);
+                    if (!Container.getURLToUIDMap().containsKey(articleURL)) {
+                        Container.getURLToUIDMap().put(articleURL, URLUID);
+                        Container.getUIDToClusterMap().put(URLUID, i);
                         URLUID += 1;
+                        count += 1;
                     }
                 }
-                count += 1;
                 if (count >= clusterSize)
                     return;
             }
             nextPage = document.getElementsByAttributeValue("class", "next_page").first().absUrl("href");
-            System.out.println("next page: " + nextPage);
             if (nextPage == null || nextPage.equals(URL))
                 return;
-
         }
     }
 
     public void run() {
         try {
-            for (String URL : startURLs)
-                extractURL(URL);
+            for (int i = 0; i < startURLs.length; i++)
+                extractURL(startURLs[i], i+1);
+            Container.getURLQueue().put("end");
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public static void main(String[] args) {
-        ArrayBlockingQueue<String> URLQueue = new ArrayBlockingQueue<String>(200);
-        ConcurrentHashMap<String, Integer> URLMap = new ConcurrentHashMap<String, Integer>();
-        WebPageProducer webPageProducer = new WebPageProducer(URLQueue, URLMap, 100);
+        WebPageProducer webPageProducer = new WebPageProducer(100);
         webPageProducer.run();
     }
 }
