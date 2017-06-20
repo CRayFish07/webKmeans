@@ -1,23 +1,23 @@
 package com.spider;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.phantomjs.PhantomJSDriver;
-import org.openqa.selenium.phantomjs.PhantomJSDriverService;
-import org.openqa.selenium.remote.DesiredCapabilities;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ThreadPoolExecutor;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
  * Created by wqlin on 17-6-19.
- * 生产者
+ * 生产者,产生文章链接
  */
-public class WebPageProducer extends Thread {
+public class WebPageProducer implements Runnable {
     private static String[] startURLs = {
             "https://www.myzaker.com/channel/9",//娱乐频道
             "https://www.myzaker.com/channel/7",//汽车频道
@@ -27,87 +27,60 @@ public class WebPageProducer extends Thread {
             "https://www.myzaker.com/channel/10386",//美食频道
             "https://www.myzaker.com/channel/12",//时尚频道
             "https://www.myzaker.com/channel/981",//旅游频道
-            "https://www.myzaker.com/channel/1037",//游戏频道
+            "https://www.myzaker.com/channel/10376",//游戏频道
             "https://www.myzaker.com/channel/10530"//电影频道
     };
+    private static ArrayBlockingQueue<String> URLQueue;
+    private int clusterSize;
+    private volatile int URLUID = 1;
+    private static ConcurrentHashMap<String, Integer> URLMap;
 
-    private final int assignedURLID;
-
-    private static AtomicInteger urlCount = new AtomicInteger(0);
-
-
-    public WebPageProducer(int id) {
-        this.assignedURLID = id;
+    public WebPageProducer(ArrayBlockingQueue<String> URLQueue,
+                           ConcurrentHashMap<String, Integer> URLMap,
+                           int clusterSize) {
+        URLQueue = URLQueue;
+        URLMap = URLMap;
+        this.clusterSize = clusterSize;
     }
 
-    private String findChromeDriver(String path) {
-        ClassLoader classLoader = getClass().getClassLoader();
-        return classLoader.getResource(path).getFile();
-    }
+    private void extractURL(String URL) throws IOException {
+        int count = 0;
+        String nextPage = URL;
+        while (true) {
+            Document document = Jsoup.connect(nextPage).get();
+            for (Element element : document.getElementsByAttributeValue("class", "figure flex-block")) {
+                String articleURL = element.select("div > h2 > a").first().absUrl("href");
+                synchronized (WebPageProducer.class) {
+                    if (!URLMap.containsKey(articleURL)) {
+                        URLMap.put(articleURL, URLUID);
+                        URLUID += 1;
+                    }
+                }
+                count += 1;
+                if (count >= clusterSize)
+                    return;
+            }
+            nextPage = document.getElementsByAttributeValue("class", "next_page").first().absUrl("href");
+            System.out.println("next page: " + nextPage);
+            if (nextPage == null || nextPage.equals(URL))
+                return;
 
-    public synchronized WebDriver scrollToBottom(WebDriver driver, int time) throws InterruptedException {
-        String oldpage = "";
-        String newpage = "";
-        do {
-            oldpage = driver.getPageSource();
-            ((JavascriptExecutor) driver)
-                    .executeScript("window.scrollTo(0, (document.body.scrollHeight))");
-            this.wait(time);
-            newpage = driver.getPageSource();
-        } while (!oldpage.equals(newpage));
-        return driver;
-    }
-
-    private void extractURL(WebDriver driver) {
-        List<WebElement> webElementList = driver.findElements(By.xpath("//*[@id=\"section\"]/div/div"));
-        for (WebElement webElement : webElementList) {
-            String url = webElement.findElement(By.xpath("./h2/a")).getAttribute("href");
-            urlCount.incrementAndGet();
-            System.out.println(url);
         }
     }
 
-    public void parse(String url) {
-        DesiredCapabilities capabilities = DesiredCapabilities.phantomjs();
-        capabilities.setCapability(PhantomJSDriverService.PHANTOMJS_EXECUTABLE_PATH_PROPERTY, findChromeDriver("phantomjs/bin/phantomjs"));
-
-        WebDriver driver = new PhantomJSDriver(capabilities);
-        driver.get(url);
+    public void run() {
         try {
-            for (int i = 0; i < 10; i++) {
-                driver = scrollToBottom(driver, 5000);
-            }
-        } catch (InterruptedException e) {
+            for (String URL : startURLs)
+                extractURL(URL);
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        this.extractURL(driver);
-
-
-        driver.quit();
     }
 
-    @Override
-    public void run() {
-        parse(startURLs[assignedURLID]);
+    public static void main(String[] args) {
+        ArrayBlockingQueue<String> URLQueue = new ArrayBlockingQueue<String>(200);
+        ConcurrentHashMap<String, Integer> URLMap = new ConcurrentHashMap<String, Integer>();
+        WebPageProducer webPageProducer = new WebPageProducer(URLQueue, URLMap, 100);
+        webPageProducer.run();
     }
-
-//    public static void main(String[] args) {
-////        WebPageProducer demo = new WebPageProducer(1);
-////        demo.parse(startURLs[1]);
-//
-//
-//        ArrayList<WebPageProducer> seleniumDemoList = new ArrayList<WebPageProducer>();
-//        for (int i = 0; i < startURLs.length; i++) {
-//            WebPageProducer seleniumDemo = new WebPageProducer(i);
-//            seleniumDemoList.add(seleniumDemo);
-//            seleniumDemo.start();
-//        }
-//        try {
-//            for (int i = 0; i < startURLs.length; i++)
-//                seleniumDemoList.get(i).join();
-//            System.out.println(urlCount.get());
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//    }
 }
