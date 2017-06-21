@@ -31,13 +31,6 @@ public class WebPageProducer implements Runnable {
     private volatile int URLUID = 1;
 
 
-    //    public WebPageProducer(ArrayBlockingQueue<String> urlQueue,
-//                           ConcurrentHashMap<String, Integer> urlMap,
-//                           int clusterSize) {
-//        URLQueue = urlQueue;
-//        URLMap = urlMap;
-//        this.clusterSize = clusterSize;
-//    }
     public WebPageProducer(
             int clusterSize) {
         this.clusterSize = clusterSize;
@@ -47,7 +40,9 @@ public class WebPageProducer implements Runnable {
         int count = 0;
         String nextPage = URL;
         while (true) {
-            Document document = Jsoup.connect(nextPage).get();
+            Document document = Jsoup.connect(nextPage)
+                    .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.104 Safari/537.36")
+                    .get();
             for (Element element : document.getElementsByAttributeValue("class", "figure flex-block")) {
                 String articleURL = element.select("div > h2 > a").first().absUrl("href");
                 synchronized (WebPageProducer.class) {
