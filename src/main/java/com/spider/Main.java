@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Main {
 
     public static void main(String[] args) {
-        final int CLUSTER_SIZE = 100;
+        final int CLUSTER_SIZE = 50;
         final String resultDirPath = "./input/";
         File resultDir = new File(resultDirPath);
         if (!resultDir.exists())

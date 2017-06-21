@@ -9,7 +9,7 @@ import java.io.PrintWriter;
 public class Utils {
     public static void writeToFile(String fileName, String content) {
         try {
-            System.out.println(fileName);
+            //System.out.println(fileName);
             PrintWriter writer = new PrintWriter(fileName, "UTF-8");
             writer.println(content);
             writer.close();

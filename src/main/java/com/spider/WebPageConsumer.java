@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Created by wqlin on 17-6-19.
@@ -29,17 +30,14 @@ public class WebPageConsumer implements Runnable {
             //if(document.body().toString());
             try {
                 String articleBody = document.getElementById("article").toString();
-                Utils.writeToFile(resultDir + Container.getURLToUIDMap().get(URL), articleBody);
+                Utils.writeToFile(resultDir + "raw.txt", articleBody);
+                System.out.println("Processing: " + URL + " UID: " + Container.getURLToUIDMap().get(URL));
             } catch (NullPointerException e) {
-                e.printStackTrace();
-                System.out.print(URL);
+                System.out.println("Error in processing: " + URL + " UID: " + Container.getURLToUIDMap().get(URL));
+                Thread.sleep(3000);
+                Container.getURLQueue().put(URL);
             }
         }
-        PrintWriter writer = new PrintWriter("UIDToCluster", "UTF-8");
-        for (ConcurrentHashMap.Entry<Integer, Integer> e : Container.getUIDToClusterMap().entrySet()) {
-            writer.println(e.getKey() + " " + e.getValue());
-        }
-        writer.close();
     }
 
     public void run() {

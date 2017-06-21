@@ -6,6 +6,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -49,9 +50,9 @@ public class WebPageProducer implements Runnable {
             Document document = Jsoup.connect(nextPage).get();
             for (Element element : document.getElementsByAttributeValue("class", "figure flex-block")) {
                 String articleURL = element.select("div > h2 > a").first().absUrl("href");
-                Container.getURLQueue().put(articleURL);
                 synchronized (WebPageProducer.class) {
                     if (!Container.getURLToUIDMap().containsKey(articleURL)) {
+                        Container.getURLQueue().put(articleURL);
                         Container.getURLToUIDMap().put(articleURL, URLUID);
                         Container.getUIDToClusterMap().put(URLUID, i);
                         URLUID += 1;
@@ -70,15 +71,20 @@ public class WebPageProducer implements Runnable {
     public void run() {
         try {
             for (int i = 0; i < startURLs.length; i++)
-                extractURL(startURLs[i], i+1);
-            Container.getURLQueue().put("end");
+                extractURL(startURLs[i], i + 1);
+            PrintWriter UIDToClusterWriter = new PrintWriter("UIDToCluster.txt", "UTF-8");
+            for (ConcurrentHashMap.Entry<Integer, Integer> e : Container.getUIDToClusterMap().entrySet()) {
+                UIDToClusterWriter.println(e.getKey() + " " + e.getValue());
+            }
+            UIDToClusterWriter.close();
+            PrintWriter URLToUIDWriter = new PrintWriter("URLToUID.txt", "UTF-8");
+            for (ConcurrentHashMap.Entry<String, Integer> e : Container.getURLToUIDMap().entrySet()) {
+                URLToUIDWriter.println(e.getKey() + " " + e.getValue());
+            }
+            URLToUIDWriter.close();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static void main(String[] args) {
-        WebPageProducer webPageProducer = new WebPageProducer(100);
-        webPageProducer.run();
     }
 }
