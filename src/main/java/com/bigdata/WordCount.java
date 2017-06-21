@@ -22,6 +22,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
@@ -108,6 +109,7 @@ public class WordCount {
     public static void main(String[] args) throws Exception{
         Configuration conf = new Configuration();
         Job job = Job.getInstance(conf, "WordCount");
+        conf.set("textinputformat.record.delimiter","******************** separating line ********************");
 
         job.setJarByClass(WordCount.class);
         job.setMapperClass(WordCountMapper.class);
@@ -116,6 +118,7 @@ public class WordCount {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(IntWritable.class);
 
+        job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
