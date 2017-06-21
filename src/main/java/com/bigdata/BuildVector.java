@@ -78,13 +78,7 @@ public class BuildVector {
             FileSystem fs = FileSystem.get(conf);
 
             //读取词表
-            Path dictPath = new Path(conf.get("DICTPATH"));
-            SequenceFile.Reader dictReader = new SequenceFile.Reader(fs, dictPath, conf);
-            Text word = new Text();
-            IntWritable index = new IntWritable();
-            while (dictReader.next(word, index))
-                wordDict.put(word.toString(), index.get());
-            dictReader.close();
+            wordDict = Tool.readWordDict(conf, conf.get("DICTPATH"));
 
             //读取所有网页ID
             List<Integer> pageIds = new LinkedList<Integer>();

@@ -15,6 +15,8 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
+import com.bigdata.Tool;
+
 /**
  * Created by ivan on 6/19/17.
  * 实现Kmeans、迭代求解直至满足条件
@@ -29,20 +31,7 @@ public class Kmeans {
     final private static String SEPARATOR = "@";
     final private static String AND = "&";
 
-    /**
-     * 将tfidfs转为Map<Integer, Double>
-     * @param tfidfs 单词编号1|TFIDF值1&单词编号2|TFIDF值2...
-     * @return
-     */
-    protected static Map<Integer, Double> str2map(Text tfidfs){
-        Map<Integer, Double> wordTfidf = new HashMap<Integer, Double>();
-        String[] wts = tfidfs.toString().split(AND);
-        for (String wt :wts){
-            wordTfidf.put(Integer.parseInt(wt.split(SEPARATOR)[0]),
-                    Double.parseDouble(wt.split(SEPARATOR)[1]));
-        }
-        return wordTfidf;
-    }
+
 
     public static class KmeansMapper extends
             Mapper<IntWritable, Text, IntWritable, Text>{
@@ -54,79 +43,19 @@ public class Kmeans {
         protected void setup(Context context)
             throws IOException, InterruptedException{
             Configuration conf = context.getConfiguration();
-            FileSystem fs = FileSystem.get(conf);
-
             //读取词表
-            Path dictPath = new Path(conf.get("DICTPATH"));
-            SequenceFile.Reader dictReader = new SequenceFile.Reader(fs, dictPath, conf);
-            Text word = new Text();
-            IntWritable index = new IntWritable();
-            while (dictReader.next(word, index))
-                wordDict.put(word.toString(), index.get());
-            dictReader.close();
-
+            wordDict = Tool.readWordDict(conf, conf.get("DICTPATH"));
             //读取中心
-            Path centerPath = new Path(conf.get("CENTERPATH"));
-            SequenceFile.Reader centerReader = new SequenceFile.Reader(fs, centerPath, conf);
-            IntWritable centerId = new IntWritable();
-            Text tfidfs = new Text();
-            while (centerReader.next(centerId, tfidfs)){
-                Map<Integer, Double> wordTFIDF = str2map(tfidfs);
-                centers.put(centerId.get(), wordTFIDF);
-            }
-            centerReader.close();
+            centers = Tool.readCenter(conf, conf.get("CENTERPATH"));
 
             super.setup(context);
         }
 
         protected void map(IntWritable key, Text value, Context context)
             throws IOException, InterruptedException{
-            int corrC = getNearestNeighbour(str2map(value));
+            int corrC = Tool.getNearestNeighbour(Tool.text2map(value), centers, wordDict.size());
             corrCenter.set(corrC);
             context.write(corrCenter, value);
-        }
-
-        /**
-         * 找出与改样本距离最近的中心
-         * @param page
-         * @return
-         */
-        private int getNearestNeighbour(Map<Integer, Double> page){
-            int index = 0;
-            double miniDist = 0.0;
-            for(int i : centers.keySet()){
-                double dist = getDistance(centers.get(i), page);
-                if (dist < miniDist){
-                    miniDist = dist;
-                    index = i;
-                }
-            }
-            return index;
-        }
-
-        /**
-         * 计算该网页与中心的余弦距离
-         * @param center
-         * @param page
-         * @return
-         */
-        private double getDistance(Map<Integer, Double> center, Map<Integer, Double> page){
-            double sum = 0;
-            double sum1 = 0;
-            double sum2 = 0;
-            for(int i = 0; i < wordDict.size(); i++){
-                if (center.containsKey(i) && page.containsKey(i)) {
-                    sum += (center.get(i) * page.get(i));
-                    sum1 += Math.pow(center.get(i), 2);
-                    sum2 += Math.pow(page.get(i), 2);
-                }else if (center.containsKey(i)){
-                    sum1 += Math.pow(center.get(i), 2);
-                }else if (page.containsKey(i)){
-                    sum2 += Math.pow(page.get(i), 2);
-                }
-
-            }
-            return sum / (Math.sqrt(sum1) * Math.sqrt(sum2));
         }
 
     }
@@ -142,17 +71,11 @@ public class Kmeans {
         protected void setup(Context context)
                 throws IOException, InterruptedException{
             Configuration conf = context.getConfiguration();
-            FileSystem fs = FileSystem.get(conf);
             //读取词表
-            Path dictPath = new Path(conf.get("DICTPATH"));
-            SequenceFile.Reader dictReader = new SequenceFile.Reader(fs, dictPath, conf);
-            Text word = new Text();
-            IntWritable index = new IntWritable();
-            while (dictReader.next(word, index))
-                wordDict.put(word.toString(), index.get());
-            dictReader.close();
+            wordDict = Tool.readWordDict(conf, conf.get("DICTPATH"));
 
             //将上次迭代后的中心(CENTER)保存到(OLDCENTER)
+            FileSystem fs = FileSystem.get(conf);
             Path centerPath = new Path(conf.get("CENTERPATH"));
             SequenceFile.Reader oldCenterReader = new SequenceFile.Reader(fs, centerPath, conf);
             Path oldCenterPath = new Path(conf.get("OLDCENTERPATH"));
@@ -179,7 +102,7 @@ public class Kmeans {
             double[] newCenter = new double[wordDict.size()];
 
             for (Text value : values){
-                Map<Integer, Double> page = str2map(value);
+                Map<Integer, Double> page = Tool.text2map(value);
                 for (int i : page.keySet()){
                     newCenter[i] += page.get(i);
 
@@ -235,6 +158,7 @@ public class Kmeans {
 
 
     }
+
 
 
     public static void main(String[] args)

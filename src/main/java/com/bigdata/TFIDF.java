@@ -86,7 +86,7 @@ public class TFIDF {
                 double tf = Double.parseDouble(temp.get(pageId));
 
 
-                double idf = Math.log10(((double)numOfPage) / (numOfPageWithWord + 1));
+                double idf = 1 + Math.log10(((double)numOfPage) / (numOfPageWithWord + 1));
                 //System.out.println(Double.toString(tf) +"  "+Double.toString(idf) + " " + numOfPage + " " + numOfPageWithWord);
                 wordPageId.set(key.toString() + SEPARATOR + pageId);
                 tfidf.set(tf * idf);
