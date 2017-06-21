@@ -3,22 +3,17 @@ package com.bigdata;
 import java.io.*;
 import java.util.*;
 
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 /**
  * Created by ivan on 6/18/17.
@@ -35,16 +30,16 @@ public class BuildVector {
     final private static String AND = "&";
 
     public static class BuildVectorMapper extends
-            Mapper<Text, DoubleWritable, LongWritable, Text>{
-        private LongWritable pageId = new LongWritable();
+            Mapper<Text, DoubleWritable, IntWritable, Text>{
+        private IntWritable pageId = new IntWritable();
         private Text wordTFIDF = new Text();
-        private List<Long> pageIds = new LinkedList<Long>();
+        private List<Integer> pageIds = new LinkedList<Integer>();
 
         protected void map(Text key, DoubleWritable value, Context context)
             throws IOException, InterruptedException{
             String[] wordPageId = key.toString().split(SEPARATOR);
-            pageId.set(Long.parseLong(wordPageId[1]));
-            pageIds.add(Long.parseLong(wordPageId[1]));
+            pageId.set(Integer.parseInt(wordPageId[1]));
+            pageIds.add(Integer.parseInt(wordPageId[1]));
             wordTFIDF.set(wordPageId[0] + SEPARATOR + value.toString());
             context.write(pageId, wordTFIDF);
         }
@@ -57,10 +52,10 @@ public class BuildVector {
             FileSystem fs = FileSystem.get(conf);
             fs.delete(centerPath, true);
             SequenceFile.Writer out
-                    = new SequenceFile.Writer(fs, conf, centerPath, LongWritable.class, LongWritable.class);
+                    = new SequenceFile.Writer(fs, conf, centerPath, IntWritable.class, IntWritable.class);
 
-            LongWritable pageId = new LongWritable();
-            for(long id : pageIds){
+            IntWritable pageId = new IntWritable();
+            for(int id : pageIds){
                 pageId.set(id);
                 out.append(pageId, pageId);
             }
@@ -70,11 +65,11 @@ public class BuildVector {
     }
 
     public static class BuildVectorReducer extends
-            Reducer<LongWritable, Text, LongWritable, Text> {
-        private Map<String, Long> wordDict = new HashMap<String, Long>();
+            Reducer<IntWritable, Text, IntWritable, Text> {
+        private Map<String, Integer> wordDict = new HashMap<String, Integer>();
         private Text wordIdTFIDF = new Text();
-        private List<Long> center = new LinkedList<Long>();
-        private Map<Long, String> centerTFIDF = new HashMap<Long, String>();
+        private List<Integer> center = new LinkedList<Integer>();
+        private Map<Integer, String> centerTFIDF = new HashMap<Integer, String>();
 
         @Override
         protected void setup(Context context)
@@ -86,16 +81,16 @@ public class BuildVector {
             Path dictPath = new Path(conf.get("DICTPATH"));
             SequenceFile.Reader dictReader = new SequenceFile.Reader(fs, dictPath, conf);
             Text word = new Text();
-            LongWritable index = new LongWritable();
+            IntWritable index = new IntWritable();
             while (dictReader.next(word, index))
                 wordDict.put(word.toString(), index.get());
             dictReader.close();
 
             //读取所有网页ID
-            List<Long> pageIds = new LinkedList<Long>();
+            List<Integer> pageIds = new LinkedList<Integer>();
             Path centerPath = new Path(conf.get("CENTERPATH"));
             SequenceFile.Reader centerReader = new SequenceFile.Reader(fs, centerPath, conf);
-            LongWritable temp = new LongWritable();
+            IntWritable temp = new IntWritable();
             while (centerReader.next(temp)) {
                 pageIds.add(temp.get());
             }
@@ -113,7 +108,7 @@ public class BuildVector {
             super.setup(context);
         }
 
-        protected void reduce(LongWritable key, Iterable<Text> values, Context context)
+        protected void reduce(IntWritable key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
             StringBuilder allWordTFIDFTemp = new StringBuilder();
             for (Text value : values) {
@@ -137,16 +132,18 @@ public class BuildVector {
         protected void cleanup(Context context)
                 throws IOException, InterruptedException {
             Configuration conf = context.getConfiguration();
+
             //保存中心
             Path centerPath = new Path(conf.get("CENTERPATH"));
             FileSystem fs = FileSystem.get(conf);
             fs.delete(centerPath, true);
             SequenceFile.Writer out
-                    = new SequenceFile.Writer(fs, conf, centerPath, LongWritable.class, Text.class);
+                    = new SequenceFile.Writer(fs, conf, centerPath, IntWritable.class, Text.class);
 
             int i = 0;
-            for (long index : centerTFIDF.keySet()) {
-                out.append(new LongWritable(i), new Text(centerTFIDF.get(index)));
+            for (int index : centerTFIDF.keySet()) {
+                System.out.println(centerTFIDF.get(index));
+                out.append(new IntWritable(i), new Text(centerTFIDF.get(index)));
                 i++;
             }
             out.close();
@@ -155,10 +152,11 @@ public class BuildVector {
     }
     public static void main(String[] args) throws Exception{
 
-        //buildVectorInput, buildVectorOutput, DICTPATH, CENTERPATH
+        //buildVectorInput, buildVectorOutput, DICTPATH, CENTERPATH, K
         Configuration conf = new Configuration();
         conf.set("DICTPATH", args[2]);
         conf.set("CENTERPATH", args[3]);
+        conf.set("K", args[4]);
 
         Job job = Job.getInstance(conf, "buildVector");
 
@@ -169,9 +167,9 @@ public class BuildVector {
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
-        job.setMapOutputKeyClass(LongWritable.class);
+        job.setMapOutputKeyClass(IntWritable.class);
         job.setMapOutputValueClass(Text.class);
-        job.setOutputKeyClass(LongWritable.class);
+        job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(Text.class);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));

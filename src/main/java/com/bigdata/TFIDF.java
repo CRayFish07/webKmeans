@@ -3,22 +3,17 @@ package com.bigdata;
 import java.io.*;
 import java.util.*;
 
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 /**
  * Created by ivan on 6/17/17.
@@ -51,9 +46,9 @@ public class TFIDF {
             Reducer<Text, Text, Text, DoubleWritable>{
         private Text wordPageId = new Text();
         private DoubleWritable tfidf = new DoubleWritable();
-        private long numOfPage = 0;
-        private static Map<String, Long> wordDict = new HashMap<String, Long>();
-        private static long wordIndex = 0;
+        private int numOfPage = 0;
+        private static Map<String, Integer> wordDict = new HashMap<String, Integer>();
+        private static int wordIndex = 0;
 
         @Override
         protected void setup(Context context)
@@ -61,7 +56,7 @@ public class TFIDF {
             //获取网页数量
             Configuration conf = context.getConfiguration();
 
-            numOfPage = conf.getLong("numOfPage", -1);
+            numOfPage = conf.getInt("numOfPage", -1);
 
             super.setup(context);
 
@@ -70,7 +65,7 @@ public class TFIDF {
         protected void reduce(Text key, Iterable<Text> values, Context context)
             throws IOException, InterruptedException{
 
-            long numOfPageWithWord = 0;
+            int numOfPageWithWord = 0;
             Map<String, String> temp = new HashMap<String, String>();
 
             //建立词表
@@ -109,16 +104,20 @@ public class TFIDF {
             Path dictPath = new Path(conf.get("DICTPATH"));
             fs.delete(dictPath, true);
 
+
             final SequenceFile.Writer out =
-                    SequenceFile.createWriter(fs, conf, dictPath, Text.class, LongWritable.class);
+                    SequenceFile.createWriter(fs, conf, dictPath, Text.class, IntWritable.class);
+
 
             Text word = new Text();
-            LongWritable index = new LongWritable();
+            IntWritable index = new IntWritable();
 
             for(String w : wordDict.keySet()){
                 word.set(w);
                 index.set(wordDict.get(w));
                 out.append(word, index);
+//                System.out.print(word);
+//                System.out.println(index);
             }
             out.close();
             super.cleanup(context);

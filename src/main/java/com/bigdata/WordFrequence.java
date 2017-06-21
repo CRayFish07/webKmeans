@@ -9,17 +9,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 /**
  * Created by ivan on 6/17/17.
@@ -35,27 +31,27 @@ public class WordFrequence {
     final private static String SEPARATOR = "@";
 
     public static class WordFrequenceMapper extends
-            Mapper<Text, IntWritable, Text, Text>{
+            Mapper<Text, IntWritable, IntWritable, Text>{
 
-        private Text pageId = new Text();
+        private IntWritable pageId = new IntWritable();
         private Text wordWordCount = new Text();
 
         protected void map(Text key, IntWritable value, Context context)
             throws IOException, InterruptedException{
             String[] temp = key.toString().split(SEPARATOR);
-            pageId.set(temp[1]);
+            pageId.set(Integer.parseInt(temp[1]));
             wordWordCount.set(temp[0] + SEPARATOR + value.toString());
             context.write(pageId, wordWordCount);
         }
     }
 
     public static class WordFrequenceReducer extends
-            Reducer<Text, Text, Text, DoubleWritable>{
+            Reducer<IntWritable, Text, Text, DoubleWritable>{
 
         private Text wordPageId = new Text();
         private DoubleWritable percent = new DoubleWritable();
 
-        protected void reduce(Text key, Iterable<Text> values, Context context)
+        protected void reduce(IntWritable key, Iterable<Text> values, Context context)
             throws IOException, InterruptedException{
             Map<String, Integer> counter = new HashMap<String, Integer>();
             int count = 0;
@@ -81,9 +77,8 @@ public class WordFrequence {
         job.setMapperClass(WordFrequenceMapper.class);
         job.setReducerClass(WordFrequenceReducer.class);
 
-        //job.setInputFormatClass(KeyValueTextInputFormat.class);
 
-        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputKeyClass(IntWritable.class);
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(DoubleWritable.class);
