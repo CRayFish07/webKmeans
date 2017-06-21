@@ -26,7 +26,10 @@ public class WebPageConsumer implements Runnable {
     public void parse() throws IOException, InterruptedException {
         String URL;
         while (!(URL = Container.getURLQueue().take()).equals("end")) {
-            Document document = Jsoup.connect(URL).get();
+            Document document = Jsoup.connect(URL)
+                    .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.104 Safari/537.36")
+                    .referrer("https://www.myzaker.com/")
+                    .get();
             //if(document.body().toString());
             try {
                 String articleBody = document.getElementById("article").toString();

@@ -30,14 +30,6 @@ public class WebPageProducer implements Runnable {
     private int clusterSize;
     private volatile int URLUID = 1;
 
-
-    //    public WebPageProducer(ArrayBlockingQueue<String> urlQueue,
-//                           ConcurrentHashMap<String, Integer> urlMap,
-//                           int clusterSize) {
-//        URLQueue = urlQueue;
-//        URLMap = urlMap;
-//        this.clusterSize = clusterSize;
-//    }
     public WebPageProducer(
             int clusterSize) {
         this.clusterSize = clusterSize;
