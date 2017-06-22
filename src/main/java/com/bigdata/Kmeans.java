@@ -78,7 +78,7 @@ public class Kmeans {
             Path centerPath = new Path(conf.get("CENTERPATH"));
             SequenceFile.Reader oldCenterReader = new SequenceFile.Reader(fs, centerPath, conf);
             Path oldCenterPath = new Path(conf.get("OLDCENTERPATH"));
-            fs.delete(oldCenterPath);
+            fs.delete(oldCenterPath, true);
             SequenceFile.Writer oldCenterWriter
                     = new SequenceFile.Writer(fs, conf, oldCenterPath, IntWritable.class, Text.class);
             IntWritable i = new IntWritable();

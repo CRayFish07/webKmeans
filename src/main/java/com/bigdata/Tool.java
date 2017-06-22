@@ -9,6 +9,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -98,8 +99,8 @@ public class Tool {
     public static int getNearestNeighbour(Map<Integer, Double> page, Map<Integer, Map<Integer, Double>> centers, int wordDictSisze){
         int index = -1;
         double miniDist = Double.MIN_VALUE;
-        Random random = new Random();
-        int rand = random.nextInt();
+        //Random random = new Random();
+        //int rand = random.nextInt();
         //System.out.println(rand + "page:" + page.toString());
         for(int i : centers.keySet()){
             double dist = getDistance(centers.get(i), page, wordDictSisze);
@@ -108,6 +109,7 @@ public class Tool {
                 index = i;
             }
         }
+        //System.out.println(centers.size());
         //System.out.println(rand + "center:" + centers.get(index).toString());
         //System.out.println(rand + " " + getDistance(centers.get(1), page, wordDictSisze));
         //System.out.println(rand + " " + getDistance(centers.get(0), page, wordDictSisze));
@@ -116,7 +118,7 @@ public class Tool {
 
 
     /**
-     * 计算该网页与中心的余弦距离
+     * 计算该网页与簇心的余弦距离
      * @param center
      * @param page
      * @param wordDictSize
@@ -139,6 +141,28 @@ public class Tool {
 
         }
         return sum / (Math.sqrt(sum1) * Math.sqrt(sum2));
+    }
+
+
+    public static boolean centersChange(FileSystem fs, Configuration conf, String oldCenterPath, String centerPath)
+        throws IOException{
+        Map<Integer, String> oldCenters = new HashMap<Integer, String>();
+        Map<Integer, String> centers = new HashMap<Integer, String>();
+        SequenceFile.Reader centersReader = new SequenceFile.Reader(fs, new Path(centerPath), conf);
+        SequenceFile.Reader oldCentersReader = new SequenceFile.Reader(fs, new Path(oldCenterPath), conf);
+
+        IntWritable key = new IntWritable();
+        Text value = new Text();
+        while (centersReader.next(key, value))
+            centers.put(key.get(), value.toString());
+        while (oldCentersReader.next(key, value))
+            oldCenters.put(key.get(), value.toString());
+        for (int i : centers.keySet()){
+            if (!centers.get(i).equals(oldCenters.get(i)))
+                return true;
+        }
+
+        return false;
     }
 
 }
