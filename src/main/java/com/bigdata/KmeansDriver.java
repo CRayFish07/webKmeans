@@ -57,6 +57,8 @@ public class KmeansDriver {
         conf.set("K", args[3]);
         //网页总数 TODO
         conf.set("numOfPage", "2");
+        conf.set("textinputformat.record.delimiter", "******************** separating line ********************");
+
 
 
         if (fs.exists(wordCountOutput))

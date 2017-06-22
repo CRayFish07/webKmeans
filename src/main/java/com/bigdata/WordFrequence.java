@@ -38,7 +38,7 @@ public class WordFrequence {
         protected void map(Text key, IntWritable value, Context context)
             throws IOException, InterruptedException{
             String[] temp = key.toString().split(Tool.SEPARATOR);
-            pageId.set(Integer.parseInt(temp[1]));
+            pageId.set(Integer.parseInt(temp[1].trim()));
             wordWordCount.set(temp[0] + Tool.SEPARATOR + value.toString());
             context.write(pageId, wordWordCount);
         }

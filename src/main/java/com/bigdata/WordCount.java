@@ -54,6 +54,8 @@ public class WordCount {
         public void map(Object key, Text value, Context context)
                 throws IOException, InterruptedException {
 
+            //System.out.println(value.toString());
+            //System.out.println("==============================================================");
             //获取停用词表
             if (stopwords.size() == 0) {
                 File file = new File(stopwordPath);
@@ -68,13 +70,18 @@ public class WordCount {
                 }
             }
 
-            InputSplit split = context.getInputSplit();
+
+
+
+            //InputSplit split = context.getInputSplit();
             //String id = ((FileSplit)split).getPath().getName();
             String[] valueSplit = value.toString().split("@@@@@@@@@@");
+
             if (valueSplit.length < 2)
                 return;
+
             String id = valueSplit[0];
-            System.out.println(id);
+
 
             //获取网页中的中文
             StringBuilder chineseBuilder = new StringBuilder();
@@ -114,8 +121,9 @@ public class WordCount {
 
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
+        conf.set("textinputformat.record.delimiter", "-----------------------------------------------------");
+
         Job job = Job.getInstance(conf, "WordCount");
-        conf.set("textinputformat.record.delimiter", "******************** separating line ********************");
 
         job.setJarByClass(WordCount.class);
         job.setMapperClass(WordCountMapper.class);
@@ -125,7 +133,7 @@ public class WordCount {
         job.setOutputValueClass(IntWritable.class);
 
         job.setInputFormatClass(TextInputFormat.class);
-        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        //job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileSystem fs = FileSystem.get(conf);
