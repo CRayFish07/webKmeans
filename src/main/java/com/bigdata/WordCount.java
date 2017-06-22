@@ -40,7 +40,7 @@ public class WordCount {
     final private static String SEPARATOR = "@";
 
     public static class WordCountMapper extends
-            Mapper<Object, Text, Text, IntWritable>{
+            Mapper<Object, Text, Text, IntWritable> {
         private static final Pattern ChinesePattern = Pattern.compile("[\u4e00-\u9fa5]");
         private Text word = new Text();
         private IntWritable count = new IntWritable(1);
@@ -50,14 +50,13 @@ public class WordCount {
         final private static String stopwordPath = "./stopwords";
 
 
-
         public void map(Object key, Text value, Context context)
-            throws IOException, InterruptedException{
+                throws IOException, InterruptedException {
 
             //获取停用词表
-            if (stopwords.size() == 0){
+            if (stopwords.size() == 0) {
                 File file = new File(stopwordPath);
-                if(file.exists()){
+                if (file.exists()) {
                     FileInputStream its = new FileInputStream(file);
                     InputStreamReader reader = new InputStreamReader(its);
                     BufferedReader bufferedReader = new BufferedReader(reader);
@@ -69,18 +68,23 @@ public class WordCount {
             }
 
             InputSplit split = context.getInputSplit();
-            String id = ((FileSplit)split).getPath().getName();
+            //String id = ((FileSplit)split).getPath().getName();
+            String[] valueSplit = value.toString().split("@@@@@@@@@@");
+            if (valueSplit.length < 2)
+                return;
+            String id = valueSplit[0];
+            System.out.println(id);
 
             //获取网页中的中文
             StringBuilder chineseBuilder = new StringBuilder();
             Matcher m = ChinesePattern.matcher(value.toString());
-            while(m.find()){
+            while (m.find()) {
                 chineseBuilder.append(m.group());
             }
             //分词 去除停用词 统计词频
             List<SegToken> tokens = segmenter.process(chineseBuilder.toString(), SegMode.SEARCH);
-            for (SegToken token : tokens){
-                if(!stopwords.contains(token.word)) {
+            for (SegToken token : tokens) {
+                if (!stopwords.contains(token.word)) {
                     word.set(token.word + SEPARATOR + id);
                     context.write(word, count);
                 }
@@ -91,25 +95,25 @@ public class WordCount {
     }
 
     public static class WordCountReducer extends
-            Reducer<Text, IntWritable, Text, IntWritable>{
+            Reducer<Text, IntWritable, Text, IntWritable> {
         private IntWritable wordCountSum = new IntWritable();
 
         public void reduce(Text key, Iterable<IntWritable> values, Context context)
-            throws IOException, InterruptedException{
+                throws IOException, InterruptedException {
 
             int sum = 0;
 
-            for(IntWritable value : values)
+            for (IntWritable value : values)
                 sum = sum + value.get();
             wordCountSum.set(sum);
             context.write(key, wordCountSum);
         }
     }
 
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
         Job job = Job.getInstance(conf, "WordCount");
-        conf.set("textinputformat.record.delimiter","******************** separating line ********************");
+        conf.set("textinputformat.record.delimiter", "******************** separating line ********************");
 
         job.setJarByClass(WordCount.class);
         job.setMapperClass(WordCountMapper.class);
@@ -128,7 +132,7 @@ public class WordCount {
             fs.delete(wordCountOutput, true);
         FileOutputFormat.setOutputPath(job, wordCountOutput);
 
-        System.exit(job.waitForCompletion(true)? 0 : 1);
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 
 
