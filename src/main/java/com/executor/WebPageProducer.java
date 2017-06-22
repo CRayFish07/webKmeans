@@ -1,4 +1,4 @@
-package com.spider;
+package com.executor;
 
 
 import org.jsoup.Jsoup;
@@ -7,6 +7,7 @@ import org.jsoup.nodes.Element;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -31,9 +32,47 @@ public class WebPageProducer implements Runnable {
     private volatile int URLUID = 1;
 
 
+    private ArrayBlockingQueue<String> URLQueue;
+    private ConcurrentHashMap<String, Integer> URLToUIDMap;
+    private ConcurrentHashMap<Integer, Integer> UIDToClusterMap;
+
+    public void setUIDToClusterMap(ConcurrentHashMap<Integer, Integer> uidToClusterMap) {
+        this.UIDToClusterMap = uidToClusterMap;
+    }
+
+    public ConcurrentHashMap<Integer, Integer> getUIDToClusterMap() {
+        return UIDToClusterMap;
+    }
+
+    public void setURLQueue(ArrayBlockingQueue<String> urlQueue) {
+        this.URLQueue = urlQueue;
+    }
+
+    public ArrayBlockingQueue<String> getURLQueue() {
+        return URLQueue;
+    }
+
+    public void setURLToUIDMap(ConcurrentHashMap<String, Integer> urlMap) {
+        this.URLToUIDMap = urlMap;
+    }
+
+    public ConcurrentHashMap<String, Integer> getURLToUIDMap() {
+        return URLToUIDMap;
+    }
+
     public WebPageProducer(
+            ArrayBlockingQueue<String> URLQueue,
+            ConcurrentHashMap<String, Integer> URLToUIDMap,
+            ConcurrentHashMap<Integer, Integer> UIDToClusterMap,
             int clusterSize) {
+        this.URLQueue = URLQueue;
+        this.URLToUIDMap = URLToUIDMap;
+        this.UIDToClusterMap = UIDToClusterMap;
         this.clusterSize = clusterSize;
+    }
+
+    public WebPageProducer() {
+
     }
 
     private void extractURL(String URL, int i) throws IOException, InterruptedException {
@@ -45,15 +84,15 @@ public class WebPageProducer implements Runnable {
                     .get();
             for (Element element : document.getElementsByAttributeValue("class", "figure flex-block")) {
                 String articleURL = element.select("div > h2 > a").first().absUrl("href");
-                synchronized (WebPageProducer.class) {
-                    if (!Container.getURLToUIDMap().containsKey(articleURL)) {
-                        Container.getURLQueue().put(articleURL);
-                        Container.getURLToUIDMap().put(articleURL, URLUID);
-                        Container.getUIDToClusterMap().put(URLUID, i);
-                        URLUID += 1;
-                        count += 1;
-                    }
+                //synchronized (WebPageProducer.class) {
+                if (!URLToUIDMap.containsKey(articleURL)) {
+                    URLQueue.put(articleURL);
+                    URLToUIDMap.put(articleURL, URLUID);
+                    UIDToClusterMap.put(URLUID, i);
+                    URLUID += 1;
+                    count += 1;
                 }
+                //}
                 if (count >= clusterSize)
                     return;
             }
@@ -68,16 +107,15 @@ public class WebPageProducer implements Runnable {
             for (int i = 0; i < startURLs.length; i++)
                 extractURL(startURLs[i], i + 1);
             PrintWriter UIDToClusterWriter = new PrintWriter("UIDToCluster.txt", "UTF-8");
-            for (ConcurrentHashMap.Entry<Integer, Integer> e : Container.getUIDToClusterMap().entrySet()) {
+            for (ConcurrentHashMap.Entry<Integer, Integer> e : UIDToClusterMap.entrySet()) {
                 UIDToClusterWriter.println(e.getKey() + " " + e.getValue());
             }
             UIDToClusterWriter.close();
             PrintWriter URLToUIDWriter = new PrintWriter("URLToUID.txt", "UTF-8");
-            for (ConcurrentHashMap.Entry<String, Integer> e : Container.getURLToUIDMap().entrySet()) {
+            for (ConcurrentHashMap.Entry<String, Integer> e : URLToUIDMap.entrySet()) {
                 URLToUIDWriter.println(e.getKey() + " " + e.getValue());
             }
             URLToUIDWriter.close();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
