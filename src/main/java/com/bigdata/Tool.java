@@ -1,5 +1,7 @@
 package com.bigdata;
 
+
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -10,6 +12,7 @@ import org.apache.hadoop.io.Text;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Created by ivan on 6/21/17.
@@ -17,8 +20,8 @@ import java.util.Map;
 
 public class Tool {
 
-    final private static String SEPARATOR = "@";
-    final private static String AND = "&";
+    final public static String SEPARATOR = "@";
+    final public static String AND = "&";
 
     /**
      * 读取词表
@@ -93,15 +96,21 @@ public class Tool {
      * @return
      */
     public static int getNearestNeighbour(Map<Integer, Double> page, Map<Integer, Map<Integer, Double>> centers, int wordDictSisze){
-        int index = 0;
-        double miniDist = 0.0;
+        int index = -1;
+        double miniDist = Double.MIN_VALUE;
+        Random random = new Random();
+        int rand = random.nextInt();
+        //System.out.println(rand + "page:" + page.toString());
         for(int i : centers.keySet()){
             double dist = getDistance(centers.get(i), page, wordDictSisze);
-            if (dist < miniDist){
+            if (dist > miniDist){
                 miniDist = dist;
                 index = i;
             }
         }
+        //System.out.println(rand + "center:" + centers.get(index).toString());
+        //System.out.println(rand + " " + getDistance(centers.get(1), page, wordDictSisze));
+        //System.out.println(rand + " " + getDistance(centers.get(0), page, wordDictSisze));
         return index;
     }
 

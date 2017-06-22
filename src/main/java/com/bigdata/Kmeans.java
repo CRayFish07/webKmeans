@@ -28,8 +28,6 @@ import com.bigdata.Tool;
  * Output: 网页对应中心点编号，新的中心点向量
  */
 public class Kmeans {
-    final private static String SEPARATOR = "@";
-    final private static String AND = "&";
 
 
 
@@ -47,6 +45,7 @@ public class Kmeans {
             wordDict = Tool.readWordDict(conf, conf.get("DICTPATH"));
             //读取中心
             centers = Tool.readCenter(conf, conf.get("CENTERPATH"));
+
 
             super.setup(context);
         }
@@ -101,6 +100,10 @@ public class Kmeans {
             int num = 0;
             double[] newCenter = new double[wordDict.size()];
 
+
+
+
+
             for (Text value : values){
                 Map<Integer, Double> page = Tool.text2map(value);
                 for (int i : page.keySet()){
@@ -110,6 +113,7 @@ public class Kmeans {
                 num++;
             }
 
+            //System.out.println(num);
 
             StringBuilder newCenterBuilder = new StringBuilder();
 
@@ -118,13 +122,15 @@ public class Kmeans {
                 newCenter[i] = newCenter[i] / num;
 
                 newCenterBuilder.append(i);
-                newCenterBuilder.append(SEPARATOR);
+                newCenterBuilder.append(Tool.SEPARATOR);
                 newCenterBuilder.append(newCenter[i]);
-                newCenterBuilder.append(AND);
+                newCenterBuilder.append(Tool.AND);
 
             }
 
             centerTfidf.put(key.get(), newCenterBuilder.toString());
+            //System.out.println(centerTfidf.toString());
+
             context.write(key, new Text(newCenterBuilder.toString()));
         }
 
@@ -133,6 +139,7 @@ public class Kmeans {
         protected void cleanup(Context context)
             throws IOException, InterruptedException{
             for(int i : oldCenterTfidf.keySet()){
+                //
                 if(!centerTfidf.containsKey(i)){
                     context.write(new IntWritable(i), new Text(oldCenterTfidf.get(i)));
                     centerTfidf.put(i, oldCenterTfidf.get(i));
@@ -152,7 +159,7 @@ public class Kmeans {
                 centerWriter.append(new IntWritable(i), new Text(centerTfidf.get(i)));
             }
             centerWriter.close();
-
+            super.cleanup(context);
         }
 
 

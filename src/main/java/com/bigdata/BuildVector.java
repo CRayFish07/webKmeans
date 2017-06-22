@@ -136,10 +136,11 @@ public class BuildVector {
 
             int i = 0;
             for (int index : centerTFIDF.keySet()) {
-                System.out.println(centerTFIDF.get(index));
+                //System.out.println(centerTFIDF.get(index));
                 out.append(new IntWritable(i), new Text(centerTFIDF.get(index)));
                 i++;
             }
+            System.out.println(i);
             out.close();
             super.cleanup(context);
         }

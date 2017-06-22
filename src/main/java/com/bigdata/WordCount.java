@@ -25,6 +25,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
+
+
 /**
  * Created by ivan on 6/16/17.
  * 提取网页中文部分、分词和去除停用词、统计词频
@@ -36,7 +38,6 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
  * Output: 单词|网页编号，单词在网页编号出现的次数
  */
 public class WordCount {
-    final private static String SEPARATOR = "@";
 
     public static class WordCountMapper extends
             Mapper<Object, Text, Text, IntWritable>{
@@ -80,7 +81,7 @@ public class WordCount {
             List<SegToken> tokens = segmenter.process(chineseBuilder.toString(), SegMode.SEARCH);
             for (SegToken token : tokens){
                 if(!stopwords.contains(token.word)) {
-                    word.set(token.word + SEPARATOR + id);
+                    word.set(token.word + Tool.SEPARATOR + id);
                     context.write(word, count);
                 }
             }

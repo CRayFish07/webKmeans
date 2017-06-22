@@ -26,7 +26,6 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
  * Output: 单词|网页编号，TFIDF值
  */
 public class TFIDF {
-    final private static String SEPARATOR = "@";
 
     public static class TFIDFMapper extends
             Mapper<Text, DoubleWritable, Text, Text>{
@@ -35,9 +34,9 @@ public class TFIDF {
 
         protected void map(Text key, DoubleWritable value, Context context)
             throws IOException, InterruptedException{
-            String[] temp = key.toString().split(SEPARATOR);
+            String[] temp = key.toString().split(Tool.SEPARATOR);
             word.set(temp[0]);
-            pageIdPercent.set(temp[1] + SEPARATOR + value.toString());
+            pageIdPercent.set(temp[1] + Tool.SEPARATOR + value.toString());
             context.write(word, pageIdPercent);
         }
     }
@@ -75,7 +74,7 @@ public class TFIDF {
             }
 
             for (Text value : values){
-                String[] pageIdPercent = value.toString().split(SEPARATOR);
+                String[] pageIdPercent = value.toString().split(Tool.SEPARATOR);
                 temp.put(pageIdPercent[0], pageIdPercent[1]);
                 if(Double.parseDouble(pageIdPercent[1]) > 0)
                     numOfPageWithWord++;
@@ -88,7 +87,7 @@ public class TFIDF {
 
                 double idf = 1 + Math.log10(((double)numOfPage) / (numOfPageWithWord + 1));
                 //System.out.println(Double.toString(tf) +"  "+Double.toString(idf) + " " + numOfPage + " " + numOfPageWithWord);
-                wordPageId.set(key.toString() + SEPARATOR + pageId);
+                wordPageId.set(key.toString() + Tool.SEPARATOR + pageId);
                 tfidf.set(tf * idf);
                 context.write(wordPageId, tfidf);
 

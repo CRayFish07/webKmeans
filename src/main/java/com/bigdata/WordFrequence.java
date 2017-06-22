@@ -28,7 +28,6 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
  * Output: 单词|网页编号， 单词在网页编号出现次数/网页的总单词数
  */
 public class WordFrequence {
-    final private static String SEPARATOR = "@";
 
     public static class WordFrequenceMapper extends
             Mapper<Text, IntWritable, IntWritable, Text>{
@@ -38,9 +37,9 @@ public class WordFrequence {
 
         protected void map(Text key, IntWritable value, Context context)
             throws IOException, InterruptedException{
-            String[] temp = key.toString().split(SEPARATOR);
+            String[] temp = key.toString().split(Tool.SEPARATOR);
             pageId.set(Integer.parseInt(temp[1]));
-            wordWordCount.set(temp[0] + SEPARATOR + value.toString());
+            wordWordCount.set(temp[0] + Tool.SEPARATOR + value.toString());
             context.write(pageId, wordWordCount);
         }
     }
@@ -56,13 +55,13 @@ public class WordFrequence {
             Map<String, Integer> counter = new HashMap<String, Integer>();
             int count = 0;
             for (Text wordWordCount : values){
-                String[] temp = wordWordCount.toString().split(SEPARATOR);
+                String[] temp = wordWordCount.toString().split(Tool.SEPARATOR);
                 counter.put(temp[0], Integer.parseInt(temp[1]));
                 count += Integer.parseInt(temp[1]);
             }
 
             for (String word : counter.keySet()){
-                wordPageId.set(word + SEPARATOR + key.toString());
+                wordPageId.set(word + Tool.SEPARATOR + key.toString());
                 percent.set(((double)counter.get(word))/count);
                 context.write(wordPageId, percent);
             }

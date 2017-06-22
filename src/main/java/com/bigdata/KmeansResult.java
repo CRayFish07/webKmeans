@@ -43,12 +43,18 @@ public class KmeansResult {
             //读取中心
             centers = Tool.readCenter(conf, conf.get("CENTERPATH"));
 
+            //System.out.println("0" + centers.get(0));
+
+
+            super.setup(context);
         }
 
 
         protected void map(IntWritable key, Text value, Context context)
             throws IOException, InterruptedException{
+
             int corrCenter = Tool.getNearestNeighbour(Tool.text2map(value), centers, wordDict.size());
+            //System.out.println(corrCenter + "   " + value.toString());
             context.write(key, new IntWritable(corrCenter));
         }
     }
@@ -76,7 +82,7 @@ public class KmeansResult {
         job.setReducerClass(KmeansResultReducer.class);
 
         job.setInputFormatClass(SequenceFileInputFormat.class);
-        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        //job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
         job.setMapOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(IntWritable.class);
