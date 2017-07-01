@@ -113,6 +113,9 @@ public class Tool {
         //System.out.println(rand + "center:" + centers.get(index).toString());
         //System.out.println(rand + " " + getDistance(centers.get(1), page, wordDictSisze));
         //System.out.println(rand + " " + getDistance(centers.get(0), page, wordDictSisze));
+
+//        if (index == -1)
+//            System.out.println(miniDist + " " + centers.keySet().size()) ;
         return index;
     }
 

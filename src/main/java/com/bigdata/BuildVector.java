@@ -103,6 +103,9 @@ public class BuildVector {
 
         protected void reduce(IntWritable key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
+
+            if (key.get() == -1)
+                System.out.println("FUCKKKKKKKKKKKKKKKKKKKKKKK");
             StringBuilder allWordTFIDFTemp = new StringBuilder();
             for (Text value : values) {
                 String[] wordTFIDFs = value.toString().split(Tool.SEPARATOR);

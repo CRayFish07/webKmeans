@@ -43,6 +43,10 @@ public class KmeansResult {
             //读取中心
             centers = Tool.readCenter(conf, conf.get("CENTERPATH"));
 
+            for (int i : centers.keySet()){
+                System.out.println(i + "......" );//+ centers.get(i));
+            }
+
             //System.out.println("0" + centers.get(0));
 
 
@@ -73,8 +77,8 @@ public class KmeansResult {
         throws Exception{
         //KmeansResultInput, KmeansResultOutput, CENTERPATH, DICTPATH
         Configuration conf = new Configuration();
-        conf.set("CENTERPATH", args[2]);
-        conf.set("DICTPATH", args[3]);
+        conf.set("CENTERPATH", "./temp/center");
+        conf.set("DICTPATH", "./temp/dict");
 
         Job job = Job.getInstance(conf, "Kmeans result");
         job.setJarByClass(KmeansResult.class);
@@ -89,9 +93,9 @@ public class KmeansResult {
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(IntWritable.class);
 
-        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileInputFormat.addInputPath(job, new Path("./temp/buildVectorOutput"));
         FileSystem fs = FileSystem.get(conf);
-        Path KmeansResultOutput = new Path(args[1]);
+        Path KmeansResultOutput = new Path("./tempResult");
         fs.delete(KmeansResultOutput, true);
         FileOutputFormat.setOutputPath(job, KmeansResultOutput);
 

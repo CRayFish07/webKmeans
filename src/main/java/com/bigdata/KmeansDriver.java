@@ -56,7 +56,7 @@ public class KmeansDriver {
         conf.set("OLDCENTERPATH", oldCenterPath);
         conf.set("K", args[3]);
         //网页总数 TODO
-        conf.set("numOfPage", "2");
+        conf.set("numOfPage", "500");
         conf.set("textinputformat.record.delimiter", "******************** separating line ********************");
 
 
