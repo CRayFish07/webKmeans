@@ -13,7 +13,7 @@ import java.util.concurrent.*;
 public class ExecutorMain {
 
     public static void main(String[] args) {
-        final int CLUSTER_SIZE = 50;
+        final int CLUSTER_SIZE = 100;
         final int CONSUMER_THREAD_SIZE = 4;
         final String resultDirPath = "./input/";
         File resultDir = new File(resultDirPath);
